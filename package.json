@@ -1,0 +1,26 @@
+{
+  "name": "koishi-plugin-approve",
+  "description": "全自动审批 Wikidot 成员申请书插件：读取待审批申请书、转发到群聊并支持通过/拒绝（Auto-approve Wikidot membership applications）",
+  "version": "0.0.1",
+  "main": "lib/index.js",
+  "typings": "lib/index.d.ts",
+  "files": [
+    "lib",
+    "dist"
+  ],
+  "license": "MIT",
+  "keywords": [
+    "chatbot",
+    "koishi",
+    "plugin",
+    "wikidot"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/umouyoumou-del/wikidot-membership-accept.git"
+  },
+  "homepage": "https://github.com/umouyoumou-del/wikidot-membership-accept",
+  "peerDependencies": {
+    "koishi": "^4.18.11"
+  }
+}
