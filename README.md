@@ -9,6 +9,7 @@
   的申请书，展示申请人（ID / 用户名 / 昵称）和申请书内容
 - 📤 **转发到群聊**：将申请书内容与用户名转发到指定群聊，附 **批准 / 拒绝按钮**；支持手动 `/转发` 或定时自动转发
 - ✅ **审批**：支持点击群聊中的按钮审批，或通过指令 `审批 <用户名> <通过|拒绝>` 审批，均可附带回复语
+- 🔁 **拒绝后可再申请**：被拒绝的账户再次提交申请书时，会被当作新申请重新扫描/转发
 - 🔍 支持通过用户名查询 user_id（`UserLookupQModule`）
 
 ## 配置
@@ -19,7 +20,7 @@
 | `password` | Wikidot 账号密码 |
 | `wiki` | 站点名（不含 `.wikidot.com`，例如 `scp-wiki`） |
 | `maxApplications` | 每次最多显示的申请书数量（默认 5，上限 20） |
-| `targets` | 转发目标群聊列表，格式 `platform:channelId`，例如 `qq:123456789` |
+| `targets` | 转发目标群聊列表，格式 `platform:channelId`。Koishi 官方 QQ（OneBot/NapCat）适配器为 `onebot:<群号>`，例如 `onebot:123456789` |
 | `scanInterval` | 定时扫描申请书间隔（秒），默认 300（5 分钟），设为 0 关闭；扫描到新申请时若配置了 targets 会自动转发 |
 | `pollInterval` | 兼容旧配置：自动转发轮询间隔（秒），未配置 scanInterval 时作为扫描间隔 |
 | `approveAuthority` | 通过按钮/指令审批所需的最低权限等级（默认 3=机器人所有者） |
@@ -38,8 +39,15 @@ plugins:
     approveAuthority: 3
 ```
 
-> ⚠️ **注意**：转发功能需要先启用对应的平台适配器（例如 QQ/OneBot/Telegram 等），
+> ⚠️ **注意**：转发功能需要先启用对应的平台适配器（例如 OneBot/NapCat、Telegram 等），
 > 否则 `ctx.bots[platform]` 中找不到机器人。channelId 请使用 Koishi 中显示的实际频道 ID。
+
+## 去重与再申请
+
+- 已转发的申请书按 `用户ID + 申请书内容` 记录去重，防止同一申请书被重复转发
+- 通过「审批」或按钮**拒绝**某账户后，会自动清除该账户的去重记录；
+  该账户若再次提交申请书（内容相同或不同），都会被当作**新申请**重新扫描并转发
+- 去重记录持久化保存在 `data/approve-processed.json`，重启不丢失
 
 ## 指令
 

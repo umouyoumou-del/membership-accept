@@ -97,6 +97,28 @@ export function apply(ctx: Context, config: Config) {
     return results.some((r) => r.startsWith('✅'))
   }
 
+  /** 构造去重键：userId + 申请书内容（同一用户以不同内容再次申请时视为新申请） */
+  function keyOf(app: WikidotApplication): string {
+    return `${app.userId}\u0000${app.text}`
+  }
+
+  /** 删除某用户的所有去重记录：被拒绝后允许其再次申请被扫描到 */
+  function removeUser(userId: string): void {
+    const prefix = userId + '\u0000'
+    for (const key of processed) {
+      if (key === userId || key.startsWith(prefix)) {
+        processed.delete(key)
+      }
+    }
+  }
+
+  /** 将消息元素转换为纯文本（用于不支持按钮等元素的平台回退发送） */
+  function toPlainText(node: string | h): string {
+    if (typeof node === 'string') return node
+    if (typeof node.attrs.text === 'string') return node.attrs.text
+    return (node.children ?? []).map((child) => toPlainText(child)).join('')
+  }
+
   loadProcessed()
 
   if (!config.username || !config.password || !config.wiki) {
@@ -147,8 +169,9 @@ export function apply(ctx: Context, config: Config) {
       const channelId = idx === -1 ? target : target.slice(idx + 1)
       const bot = platform ? ctx.bots.find((b) => b.platform === platform) : undefined
       if (!bot) {
-        logger.warn(`未找到平台 ${platform || '(未知)'} 的机器人，无法转发到 ${target}`)
-        results.push(`❌ ${target}：未找到对应平台的机器人`)
+        const available = ctx.bots.map((b) => `${b.platform}:${b.selfId}`).join(', ') || '（无已连接机器人）'
+        logger.warn(`未找到平台 ${platform || '(未知)'} 的机器人（当前可用：${available}），无法转发到 ${target}`)
+        results.push(`❌ ${target}：未找到平台 ${platform || '(未知)'} 的机器人（当前可用：${available}）`)
         continue
       }
       try {
@@ -156,8 +179,16 @@ export function apply(ctx: Context, config: Config) {
         logger.info(`【转发】已发送申请书到 ${target}`)
         results.push(`✅ ${target}`)
       } catch (e) {
-        logger.warn(`转发到 ${target} 失败：${handleError(e)}`)
-        results.push(`❌ ${target}：${handleError(e)}`)
+        // 部分平台（如 OneBot/NapCat）不支持按钮元素，回退为纯文本发送
+        logger.warn(`转发到 ${target} 失败，尝试纯文本发送：${handleError(e)}`)
+        try {
+          await bot.sendMessage(channelId, toPlainText(content))
+          logger.info(`【转发】已通过纯文本发送申请书到 ${target}`)
+          results.push(`✅ ${target}（纯文本，无按钮）`)
+        } catch (e2) {
+          logger.warn(`转发到 ${target} 纯文本发送也失败：${handleError(e2)}`)
+          results.push(`❌ ${target}：${handleError(e2)}`)
+        }
       }
     }
     return results
@@ -172,7 +203,7 @@ export function apply(ctx: Context, config: Config) {
     try {
       const apps = await newClient().listApplications()
       logger.info(`${tag}站点 ${config.wiki} 当前有 ${apps.length} 份待审批申请书`)
-      const fresh = apps.filter((app) => !processed.has(app.userId))
+      const fresh = apps.filter((app) => !processed.has(keyOf(app)))
       const lines: string[] = [`📋 站点 ${config.wiki} 当前共有 ${apps.length} 份待审批申请书`]
       if (!apps.length) {
         lines.push('当前没有待审批的申请书。')
@@ -186,7 +217,7 @@ export function apply(ctx: Context, config: Config) {
       if (report) {
         // 指令模式：在聊天中展示全部待审批申请书的申请人信息与申请书内容
         apps.forEach((app, i) => {
-          const mark = processed.has(app.userId) ? '（已转发）' : ''
+          const mark = processed.has(keyOf(app)) ? '（已转发）' : ''
           lines.push('')
           lines.push(`${i + 1}. 申请人：${app.nickname}（@${app.username}，ID ${app.userId}）${mark}`)
           lines.push(app.text ? indent(app.text, 4) : '   （无内容）')
@@ -201,7 +232,7 @@ export function apply(ctx: Context, config: Config) {
         const results = await sendToTargets(buildForwardMessage(fresh))
         // 仅当至少一个群聊发送成功时才标记为已处理，防止同一申请书重复发送
         if (hasSuccess(results)) {
-          fresh.forEach((app) => processed.add(app.userId))
+          fresh.forEach((app) => processed.add(keyOf(app)))
           saveProcessed()
           logger.info(`${tag}已自动转发 ${fresh.length} 份新申请书到群聊`)
           lines.push('', `📤 已转发 ${fresh.length} 份新申请书到目标群聊：`)
@@ -289,7 +320,12 @@ export function apply(ctx: Context, config: Config) {
           for (const app of apps) {
             try {
               await client.decideApplication(app.userId, type, reply)
-              processed.add(app.userId)
+              if (type === 'decline') {
+                // 被拒绝后清除该用户的去重记录，允许其再次申请被扫描到
+                removeUser(app.userId)
+              } else {
+                processed.add(keyOf(app))
+              }
               results.push(`✅ ${app.nickname}（@${app.username}，ID ${app.userId}）`)
             } catch (e) {
               results.push(`❌ ${app.nickname}（@${app.username}，ID ${app.userId}）：${handleError(e)}`)
@@ -303,6 +339,11 @@ export function apply(ctx: Context, config: Config) {
 
         const userId = await client.lookupUser(username)
         await client.decideApplication(userId, type, reply)
+        if (type === 'decline') {
+          // 被拒绝后清除该用户的去重记录，允许其再次申请被扫描到
+          removeUser(userId)
+          saveProcessed()
+        }
         return `✅ 已${label} @${username}（ID ${userId}）的申请${reply ? `，并回复：${reply}` : ''}。`
       } catch (e) {
         return `${label}失败：${handleError(e)}`
@@ -349,7 +390,7 @@ export function apply(ctx: Context, config: Config) {
       const missing = requireConfig()
       if (missing) return missing
       if (!config.targets?.length) {
-        return '尚未配置转发目标群聊（targets），请先填写。\n格式：platform:channelId，例如 qq:123456789'
+        return '尚未配置转发目标群聊（targets），请先填写。\n格式：platform:channelId，例如 onebot:123456789（NapCat/OneBot 平台）'
       }
       try {
         const apps = await newClient().listApplications()
@@ -357,7 +398,7 @@ export function apply(ctx: Context, config: Config) {
         const results = await sendToTargets(buildForwardMessage(apps))
         // 仅当至少一个群聊发送成功时才标记为已处理（防止同一申请书重复发送）
         if (hasSuccess(results)) {
-          apps.forEach((app) => processed.add(app.userId))
+          apps.forEach((app) => processed.add(keyOf(app)))
           saveProcessed()
         }
         logger.info(`【转发】手动转发了 ${apps.length} 份申请书`)
@@ -402,6 +443,11 @@ export function apply(ctx: Context, config: Config) {
     const label = action === 'accept' ? '批准' : '拒绝'
     try {
       await newClient().decideApplication(userId, action)
+      if (action === 'decline') {
+        // 被拒绝后清除该用户的去重记录，允许其再次申请被扫描到
+        removeUser(userId)
+        saveProcessed()
+      }
       await session.send(`✅ 已${label}用户 ${userId} 的申请。`).catch(() => {})
       logger.info(`【审批】${anySession.user?.name || anySession.userId} 通过按钮${label}了 ${userId} 的申请`)
     } catch (e) {
