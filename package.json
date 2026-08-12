@@ -1,7 +1,7 @@
 {
   "name": "koishi-plugin-membership-accept",
   "description": "全自动审批 Wikidot 成员申请书插件：读取待审批申请书、转发到群聊并支持通过/拒绝（Auto-approve Wikidot membership applications）",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "files": [
