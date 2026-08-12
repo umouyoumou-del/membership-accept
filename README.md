@@ -1,4 +1,4 @@
-# koishi-plugin-approve
+# koishi-plugin-membership-accept
 
 基于 [kakushi-w/WikidotAPI](https://github.com/kakushi-w/WikidotAPI)（`membership-apply.php` / `auth.py` / `membership_apply.py`）
 实现的全自动审批申请书插件：读取 Wikidot 站点待审批的成员申请书内容，转发到指定群聊，并支持通过 / 拒绝。
@@ -28,7 +28,7 @@
 
 ```yaml
 plugins:
-  approve:
+  membership-accept:
     username: bot-account
     password: your-password
     wiki: your-site
