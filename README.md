@@ -25,7 +25,7 @@
 | `maxApplications` | 每次最多显示的申请书数量（默认 5，上限 20） |
 | `scanInterval` | 定时扫描申请书间隔（秒），默认 300（5 分钟），设为 0 关闭；扫描到新申请时自动转发到对应站点配置的群聊 |
 | `pollInterval` | 兼容旧配置：自动转发轮询间隔（秒），未配置 scanInterval 时作为扫描间隔 |
-| `approveAuthority` | 通过按钮/指令审批所需的最低权限等级（默认 3=机器人所有者） |
+| `approveAuthority` | 通过按钮/指令审批所需的最低权限等级（默认 1=群成员） |
 
 在 Koishi 控制台中找到本插件并填写上述配置，或在 `koishi.yml` 中配置：
 
@@ -40,7 +40,7 @@ plugins:
         target: 'onebot:123456789'
       - wiki: your-site-b       # 站点 B → 群 987654321
         target: 'onebot:987654321'
-    approveAuthority: 3
+    approveAuthority: 1
 ```
 
 > 💡 每个站点对应一个 QQ 群：扫描时按站点分别读取申请书，并只转发到该站点配置的 `target` 群聊。
@@ -75,16 +75,16 @@ plugins:
 - `转发` — 将各站点待审批申请书转发到对应站点配置的群聊（含批准/拒绝按钮）
 - `测试` — 读取所有站点申请书并在控制台输出结果
 
-> 指令均要求权限等级 ≥ 3（机器人所有者），可通过 `approveAuthority` 调整按钮审批的权限要求。
+> 指令与按钮审批均要求权限等级 ≥ 1（群成员），可通过 `approveAuthority` 调整。
 
 ## 按钮审批
 
 转发到群聊的消息会包含两个按钮：
 
 ```
-📋 新成员申请书（站点 rule-wiki）
-申请人：lestday233（@lestday233，ID 7504264）
-申请书内容：申请test
+📋 新成员申请书（站点 example-wiki）
+申请人：alice（@alice，ID 12345678）
+申请书内容：我想加入这个站点，希望能一起协作。
 
 [✅ 批准]  [❌ 拒绝]
 ```

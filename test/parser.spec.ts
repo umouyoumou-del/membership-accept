@@ -41,20 +41,20 @@ const html = `
 </table>
 `
 
-// 现代 Wikidot 中文本地化版本（与真实 rule-wiki 站点返回结构一致）
+// 现代 Wikidot 中文本地化版本（与真实站点返回结构一致）
 const zhHtml = `
 <h1>申请书<small>Users applying to your wiki</small></h1>
-<h3>成员申请书来自 <span class="printuser avatarhover"><a href="http://www.wikidot.com/user:info/lestday233" onclick="WIKIDOT.page.listeners.userInfo(7504264); return false;"><img class="small" src="https://www.wikidot.com/avatar.php?userid=7504264&amp;amp;size=small" alt="lestday233"/></a><a href="http://www.wikidot.com/user:info/lestday233" onclick="WIKIDOT.page.listeners.userInfo(7504264); return false;" >lestday233</a></span></h3>
+<h3>成员申请书来自 <span class="printuser avatarhover"><a href="http://www.wikidot.com/user:info/alice" onclick="WIKIDOT.page.listeners.userInfo(12345678); return false;"><img class="small" src="https://www.wikidot.com/avatar.php?userid=12345678&amp;amp;size=small" alt="alice"/></a><a href="http://www.wikidot.com/user:info/alice" onclick="WIKIDOT.page.listeners.userInfo(12345678); return false;" >alice</a></span></h3>
 <table class="form alignleft">
   <tr>
     <td>申请书正文：</td>
-    <td>申请test</td>
+    <td>我想加入这个站点，希望能一起协作。</td>
   </tr>
   <tr>
     <td>选项：</td>
     <td>
-      <a href="javascript:;" onclick="WIKIDOT.modules.ManageSiteMembersApplicationsModule.listeners.accept(event, 7504264, 'lestday233', 'accept')" class="btn btn-primary">批准</a>
-      <a href="javascript:;" onclick="WIKIDOT.modules.ManageSiteMembersApplicationsModule.listeners.accept(event, 7504264, 'lestday233', 'decline')" class="btn btn-danger">拒绝</a>
+      <a href="javascript:;" onclick="WIKIDOT.modules.ManageSiteMembersApplicationsModule.listeners.accept(event, 12345678, 'alice', 'accept')" class="btn btn-primary">批准</a>
+      <a href="javascript:;" onclick="WIKIDOT.modules.ManageSiteMembersApplicationsModule.listeners.accept(event, 12345678, 'alice', 'decline')" class="btn btn-danger">拒绝</a>
     </td>
   </tr>
 </table>
@@ -87,10 +87,10 @@ const zhApps = parseApplications(zhHtml)
 console.log('中文模板解析结果:', JSON.stringify(zhApps, null, 2))
 if (zhApps.length !== 1) throw new Error(`应解析出 1 份申请，实际 ${zhApps.length}`)
 const zh = zhApps[0]
-if (zh.userId !== '7504264') throw new Error(`中文 user_id 解析错误: ${zh.userId}`)
-if (zh.username !== 'lestday233') throw new Error(`中文 username 解析错误: ${zh.username}`)
-if (zh.nickname !== 'lestday233') throw new Error(`中文 nickname 解析错误: ${zh.nickname}`)
-if (zh.text !== '申请test') throw new Error(`中文申请书内容解析错误: ${zh.text}`)
+if (zh.userId !== '12345678') throw new Error(`中文 user_id 解析错误: ${zh.userId}`)
+if (zh.username !== 'alice') throw new Error(`中文 username 解析错误: ${zh.username}`)
+if (zh.nickname !== 'alice') throw new Error(`中文 nickname 解析错误: ${zh.nickname}`)
+if (zh.text !== '我想加入这个站点，希望能一起协作。') throw new Error(`中文申请书内容解析错误: ${zh.text}`)
 
 // 4. HTML 实体反转义
 if (decodeEntities('a &lt; b &amp; c &quot;d&quot; &#39;e&#39; &nbsp;x') !== 'a < b & c "d" \'e\'  x') {

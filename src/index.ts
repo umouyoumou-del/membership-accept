@@ -70,9 +70,9 @@ export const Config: Schema<Config> = Schema.object({
     .min(0)
     .description('定时扫描申请书间隔（秒），默认 300（5 分钟），设为 0 关闭；扫描到新申请书时自动转发到对应站点配置的群聊'),
   approveAuthority: Schema.number()
-    .default(2)
+    .default(1)
     .min(0)
-    .description('通过按钮/指令审批所需的最低权限等级（默认 2=管理员）'),
+    .description('通过按钮/指令审批所需的最低权限等级（默认 1=群成员）'),
 })
 
 function indent(text: string, spaces: number): string {
@@ -313,7 +313,7 @@ export function apply(ctx: Context, config: Config) {
 
 
   // 读取所有站点待审批的申请书内容
-  ctx.command('申请书 [limit:number]', '读取站点待审批的申请书内容', { authority: config.approveAuthority ?? 2 })
+  ctx.command('申请书 [limit:number]', '读取站点待审批的申请书内容', { authority: config.approveAuthority ?? 1 })
     .usage('在插件配置中填写 Wikidot 管理员账号后，即可列出所有站点待审批的申请书及其内容。')
     .example('申请书')
     .example('申请书 10')
@@ -347,7 +347,7 @@ export function apply(ctx: Context, config: Config) {
     })
 
   // 通过或拒绝某人的申请书（参数为 Wikidot 用户名，或「全部」批量处理所有站点待审批申请）
-  ctx.command('审批 <user:string> <decision:string> [reply:text]', '通过或拒绝成员的申请书', { authority: config.approveAuthority ?? 2 })
+  ctx.command('审批 <user:string> <decision:string> [reply:text]', '通过或拒绝成员的申请书', { authority: config.approveAuthority ?? 1 })
     .usage('user 为申请人的 Wikidot 用户名（「申请书」列表中的 @用户名），或「全部」表示处理所有站点全部待审批申请书。decision 为「通过」或「拒绝」。')
     .example('审批 alice 通过 欢迎加入！')
     .example('审批 alice 拒绝')
@@ -420,7 +420,7 @@ export function apply(ctx: Context, config: Config) {
     })
 
   // 测试：读取所有站点申请书并在控制台输出结果
-  ctx.command('测试', '测试读取 Wikidot 申请书，并在控制台输出结果', { authority: config.approveAuthority ?? 2 })
+  ctx.command('测试', '测试读取 Wikidot 申请书，并在控制台输出结果', { authority: config.approveAuthority ?? 1 })
     .usage('调用 Wikidot 接口读取所有站点待审批申请书，结果会输出到聊天与控制台日志。')
     .example('测试')
     .action(async () => {
@@ -458,7 +458,7 @@ export function apply(ctx: Context, config: Config) {
 
 
   // 将各站点待审批申请书转发到对应配置的群聊
-  ctx.command('转发', '将各站点待审批申请书转发到对应群聊（含批准/拒绝按钮）', { authority: config.approveAuthority ?? 2 })
+  ctx.command('转发', '将各站点待审批申请书转发到对应群聊（含批准/拒绝按钮）', { authority: config.approveAuthority ?? 1 })
     .usage('需要在插件配置中为每个站点填写 target/targets（目标群聊列表）。')
     .example('转发')
     .action(async () => {
@@ -500,7 +500,7 @@ export function apply(ctx: Context, config: Config) {
     })
 
   // 主动读取并处理各站点待审批的申请书（相当于手动触发一次定时扫描）
-  ctx.command('扫描', '主动读取并处理各站点待审批的申请书', { authority: config.approveAuthority ?? 2 })
+  ctx.command('扫描', '主动读取并处理各站点待审批的申请书', { authority: config.approveAuthority ?? 1 })
     .usage('立即执行一次扫描：读取所有站点待审批的申请书，在聊天中输出全部申请书内容，并将新申请自动转发到对应群聊。')
     .example('扫描')
     .action(async () => {
@@ -524,7 +524,7 @@ export function apply(ctx: Context, config: Config) {
     }
 
     // 权限检查：点击者权限等级需达到要求
-    const required = config.approveAuthority ?? 2
+    const required = config.approveAuthority ?? 1
     const authority = anySession.user?.authority
     if (typeof authority !== 'number' || authority < required) {
       await session.send(`❌ 权限不足：需要权限等级 ≥ ${required} 才能审批。`).catch(() => {})
